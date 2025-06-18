@@ -1,0 +1,260 @@
+google: 
+"**Genera un módulo React con TypeScript y Shadcn UI para la sección de creación de eventos de un dashboard, siguiendo una estructura modular específica.** El objetivo es crear un módulo robusto, reutilizable, optimizado y con una excelente experiencia de usuario, **organizado bajo la siguiente estructura de carpetas dentro de `/app/modules/events/`:**
+
+/app/
+modules/events/
+page.tsx         # Vista principal del formulario de creación de eventos
+actions.ts       # Server Actions para manejar la lógica del formulario (envío a Supabase, etc.)
+schema.ts        # Esquema Zod para la validación de datos del formulario
+/components/    # Componentes reutilizables específicos del módulo de eventos
+EventCard.tsx  # Componente para mostrar una tarjeta resumen de un evento
+StatusBadge.tsx# Componente para mostrar visualmente el estado de un evento
+TagSelector.tsx# Componente para el selector de etiquetas (para 'Elementos Deseados', se refinará en prompts futuros)
+/types/         # Definiciones de tipos TypeScript específicas del módulo de eventos
+event.ts       # Interfaces y enums relacionados con la entidad 'Evento' (Event, EventFeature, EventStatus, EventType)
+
+
+**Sigue estrictamente esta estructura de carpetas y nombres de archivo al generar el código.**  Esto es crucial para la organización y mantenibilidad del módulo.
+
+**Sub-tarea 1: Define los tipos de datos en `/app/modules/events/types/event.ts`**
+
+*   Crea el archivo `/app/modules/events/types/event.ts`.
+*   Define la interfaz `Event`, la interfaz `EventFeature`, el enum `EventStatus` (en inglés) y el tipo literal `EventType` **exactamente** como se definió en el prompt anterior (Sub-tarea 1, 2 y 3 del prompt anterior, revisa si es necesario).  Asegúrate de que el enum `EventStatus` esté **en inglés** (`INITIATED`, `IN_PROGRESS`, `ENDED`, `ABANDONED`).
+
+*   **Ejemplo del contenido de `/app/modules/events/types/event.ts` (debe ser similar al generado previamente):**
+
+    ```typescript
+    // /app/modules/events/types/event.ts
+    export type EventType = 'Birthday' | 'FamilyReunion' | 'CorporateEvent' | 'Wedding' | 'Party' | 'Celebration' | 'CharityEvent';
+
+    export interface EventFeature {
+      label: string;
+      checked: boolean;
+    }
+
+    export enum EventStatus {
+      INITIATED = "initiated",
+      IN_PROGRESS = "in progress",
+      ENDED = "ended",
+      ABANDONED = "abandoned",
+    }
+
+    export interface Event {
+      id: string;
+      createdAt: string;
+      eventType: EventType;
+      budget: number;
+      location: string;
+      guestCount: number;
+      possibleDate: Date | null;
+      desiredFeatures: EventFeature[];
+      status: EventStatus;
+      createdBy?: string;
+      eventName?: string | null;
+      eventNotes?: string | null;
+    }
+    ```
+
+**Sub-tarea 2: Define el esquema de validación con Zod en `/app/modules/events/schema.ts`**
+
+*   Crea el archivo `/app/modules/events/schema.ts`.
+*   Utiliza Zod para definir un esquema de validación para los datos del formulario de creación de eventos.  Este esquema debe validar los siguientes campos:
+    *   `eventType`: Debe ser un valor válido del tipo `EventType`.
+    *   `budget`: Debe ser un número positivo.
+    *   `location`: Debe ser una cadena de texto no vacía.
+    *   `guestCount`: Debe ser un número entero positivo.
+    *   `possibleDate`: Debe ser una fecha válida o `null`.
+    *   `desiredFeatures`: Debe ser un array de `EventFeature` (inicialmente, la validación para este campo puede ser básica).
+
+*   **Ejemplo de `/app/modules/events/schema.ts` (puede necesitar ajustes según la complejidad de la validación):**
+
+    ```typescript
+    // /app/modules/events/schema.ts
+    import * as z from "zod";
+    import { EventType } from "./types/event"; // Importa EventType
+
+    export const eventSchema = z.object({
+      eventType: z.enum([
+        "Birthday",
+        "FamilyReunion",
+        "CorporateEvent",
+        "Wedding",
+        "Party",
+        "Celebration",
+        "CharityEvent",
+      ] as [EventType, ...EventType[]]), // Asegura que el enum EventType se use correctamente
+      budget: z.number().positive(),
+      location: z.string().min(1, { message: "El lugar del evento es requerido" }),
+      guestCount: z.number().int().positive(),
+      possibleDate: z.date().nullable(), // Permite null para fecha no definida
+      desiredFeatures: z.array(z.object({ // Esquema básico para EventFeature, se puede refinar
+        label: z.string(),
+        checked: z.boolean(),
+      })).optional(), // Opcional por ahora, se refinará
+    });
+
+    export type EventSchemaType = z.infer<typeof eventSchema>; // Define el tipo inferido del esquema para usarlo en el formulario
+    ```
+
+**Sub-tarea 3: Genera el componente principal del formulario en `/app/modules/events/page.tsx`**
+
+*   Crea el archivo `/app/modules/events/page.tsx`.
+*   Este será la vista principal del módulo de eventos y contendrá el formulario de creación.
+*   Importa los tipos desde `/app/modules/events/types/event.ts` y el esquema de Zod desde `/app/modules/events/schema.ts`.
+*   Utiliza `react-hook-form` y `zodResolver` para integrar la validación del esquema Zod en el formulario.
+*   Implementa **todos los campos del formulario (Tipo de Evento, Presupuesto, Lugar, Invitados, Fecha, Elementos Deseados - como Textarea inicial)** utilizando componentes Shadcn UI y Lucide Icons, siguiendo las especificaciones del prompt anterior (Sub-tarea 4 del prompt anterior).
+*   Utiliza Server Actions (archivo `/app/modules/events/actions.ts` - **Sub-tarea 4**) para manejar el envío del formulario.  Por ahora, la Server Action puede simplemente hacer un `console.log` de los datos del formulario validados.
+*   Incluye el botón "Comenzar Planificación" (`<Button type="submit">` de Shadcn UI).
+
+*   **Ejemplo de la estructura inicial de `/app/modules/events/page.tsx` (incompleto, solo para dar una idea):**
+
+    ```typescript jsx
+    // /app/modules/events/page.tsx
+    'use client';
+
+    import React from 'react';
+    import { Button } from '@/components/ui/button';
+    import { Input } from '@/components/ui/input';
+    import { Label } from '@/components/ui/label';
+    import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+    import { Calendar } from '@/components/ui/calendar';
+    import { Textarea } from '@/components/ui/textarea';
+    import { useForm } from 'react-hook-form';
+    import { zodResolver } from '@hookform/resolvers/zod'; // Importa zodResolver
+    import { CalendarIcon, DollarSignIcon, MapPinIcon, UsersIcon, CheckSquareIcon, CalendarIcon as EventTypeIcon } from 'lucide-react';
+    import { EventType } from './types/event'; // Importa tipos desde la ubicación correcta
+    import { eventSchema, EventSchemaType } from './schema'; // Importa el esquema de Zod
+
+    export default function EventFormPage() {
+      const { register, handleSubmit, formState: { errors } } = useForm<EventSchemaType>( {
+        resolver: zodResolver(eventSchema), // Aplica el validador Zod
+      });
+
+      const onSubmit = async (data: EventSchemaType) => {
+        console.log("Formulario validado y enviado:", data);
+        // TODO: Llamar a la Server Action (actions.ts) para enviar a Supabase
+      };
+
+      return (
+        <div className="container mx-auto py-10">
+          <h1 className="text-2xl font-bold mb-6">Crea tu Evento</h1>
+          <form onSubmit={handleSubmit(onSubmit)} className="max-w-lg">
+            {/* ... (Campos del formulario - similares al prompt anterior, ahora usando validación con react-hook-form y Zod) ... */}
+            {/* Ejemplo: Campo Tipo de Evento */}
+            <div className="grid gap-4 mb-4">
+              <Label htmlFor="eventType" className="flex items-center space-x-2"><EventTypeIcon size={16} /><span>Tipo de Evento</span></Label>
+              <Select defaultValue="" onValueChange={(value) => setValue('eventType', value as EventType)}> {/*  Usa setValue para react-hook-form */}
+                <SelectTrigger className="w-[180px]">Selecciona Tipo</SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Birthday">Cumpleaños</SelectItem>
+                  <SelectItem value="FamilyReunion">Reunión Familiar</SelectItem>
+                  {/* ... más opciones de EventType ... */}
+                </SelectContent>
+              </Select>
+              {errors.eventType && (<p className="text-red-500 text-sm">{errors.eventType.message}</p>)} {/* Muestra errores de validación */}
+            </div>
+
+            {/* ... (Más campos del formulario con validación y manejo de errores) ... */}
+
+            <Button type="submit">Comenzar Planificación</Button>
+          </form>
+        </div>
+      );
+    }
+    ```
+
+**Sub-tarea 4: Crea Server Actions en `/app/modules/events/actions.ts`**
+
+*   Crea el archivo `/app/modules/events/actions.ts`.
+*   Define una Server Action llamada `createEventAction`.
+*   Esta Server Action debe recibir los datos validados del formulario (`EventSchemaType`).
+*   Por ahora, la implementación de `createEventAction` puede ser simplemente hacer un `console.log` de los datos recibidos para verificar que la integración esté funcionando.  En prompts futuros, se implementará la lógica para guardar en Supabase.
+
+*   **Ejemplo de `/app/modules/events/actions.ts` inicial:**
+
+    ```typescript
+    // /app/modules/events/actions.ts
+    'use server'; // Marca como Server Action
+
+    import { EventSchemaType } from "./schema"; // Importa el tipo del esquema
+
+    export const createEventAction = async (validatedData: EventSchemaType) => {
+      console.log("Server Action 'createEventAction' recibida con datos validados:", validatedData);
+      // TODO: Implementar lógica para guardar en Supabase en prompts futuros
+      return { success: true, message: "Datos recibidos por la Server Action (aún no guardados)" }; // Retorna un objeto con feedback
+    };
+    ```
+
+**Sub-tarea 5:  Componentes reutilizables (inicialmente, solo estructura de carpetas)**
+
+*   Crea la carpeta `/app/modules/events/components/`.
+*   Dentro de esta carpeta, crea los archivos (vacíos por ahora, su contenido se generará en prompts futuros):
+    *   `EventCard.tsx`
+    *   `StatusBadge.tsx`
+    *   `TagSelector.tsx`
+
+**Ejemplo visual de la estructura del módulo:**
+
+/app/
+modules/
+events/
+page.tsx
+actions.ts
+schema.ts
+/components/
+EventCard.tsx
+StatusBadge.tsx
+TagSelector.tsx
+/types/
+event.ts
+
+
+**Prioridades para la IA en este prompt:**
+
+1.  **Estructura de carpetas EXACTA:**  Asegurarse de que la IA respete rigurosamente la estructura de carpetas y nombres de archivo especificados.
+2.  **Tipos, Esquema y Componente Principal:**  Implementar correctamente los tipos en `/types/event.ts`, el esquema Zod en `/schema.ts` y el formulario principal en `/page.tsx`, integrando `react-hook-form`, `zodResolver`, Shadcn UI y Lucide Icons.
+3.  **Server Actions:**  Configurar la Server Action `createEventAction` en `/actions.ts` para recibir y registrar los datos del formulario.
+4.  **Componentes Reutilizables (Estructura):** Crear la estructura de carpetas y archivos para los componentes reutilizables dentro de `/components/`, aunque su contenido se defina en prompts posteriores.
+5.  **Código Limpio y Organizado:** Generar código TypeScript bien estructurado, legible y con comentarios claros, siguiendo las convenciones de Next.js 13 App Router.
+
+Con este prompt aún más detallado y con la estructura de carpetas claramente definida, la IA debería estar en una posición mucho mejor para generar un módulo de creación de eventos bien organizado y listo para ser expandido en funcionalidades futuras. ¡Espero que esta guía sea muy útil! Avísame si tienes alguna otra pregunta."
+
+
+
+
+
+
+DEEPSEEK
+
+2. **Stack Tecnológico:**
+- Next.js 14 (App Router)
+- TypeScript estricto
+- Tailwind CSS + Shadcn/ui
+- Supabase (autenticación y base de datos)
+- Lucide icons
+- Zustand para estado global
+- DnD Kit para drag & drop
+
+3. **Componentes Clave:**
+```tsx
+// StatusBadge.tsx - Requiere:
+- Iconos diferentes por estado:
+  * initialized: <Hourglass />
+  * in_process: <Zap />
+  * completed: <CheckCircle />
+  * abandoned: <XCircle />
+- Badges con colores acordes al estado
+- Tooltip con descripción del estado
+
+// TagSelector.tsx - Debe incluir:
+- Tags predefinidos con colores (catering, música, etc)
+- Input para añadir tags personalizados (máx. 5)
+- Validación de tags duplicados
+- Preview de tags seleccionados
+
+// EventCard.tsx - Debe mostrar:
+- Título y tipo de evento
+- Fecha posible formateada
+- Presupuesto en formato monetario
+- Estado con StatusBadge
+- Menu de acciones (Editar/Eliminar/Cambiar estado)

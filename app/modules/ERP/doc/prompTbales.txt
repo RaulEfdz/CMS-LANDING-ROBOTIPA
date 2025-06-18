@@ -1,0 +1,162 @@
+Instrucciones SQL para Supabase (PostgreSQL) - con "Títulos para Snipers"
+Estas instrucciones SQL están listas para ser ejecutadas en el editor SQL de tu proyecto Supabase.  Copia y pega cada bloque de código en el editor SQL y ejecútalo.
+
+Título Sniper:  Creación Tabla Details
+
+SQL
+
+-- SNIPER TITLE:  CREATE TABLE Details
+CREATE TABLE details (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Clave primaria UUID autogenerada
+    event_id UUID NOT NULL,
+    description TEXT,
+    status_detail VARCHAR(255),
+    requirements TEXT,
+    theme VARCHAR(255),
+
+    -- Tareas categorizadas (arrays de texto en PostgreSQL):
+    before_event_tasks TEXT[],
+    during_event_tasks TEXT[],
+    after_event_tasks TEXT[],
+
+    FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE -- Clave foránea a tabla 'event'
+);
+Título Sniper:  Creación Tabla Task
+
+SQL
+
+-- SNIPER TITLE:  CREATE TABLE Task
+CREATE TABLE task (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Clave primaria UUID autogenerada
+    event_id UUID NOT NULL,
+    task_description TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    priority VARCHAR(20),
+    assigned_to VARCHAR(255),
+    due_date DATE,
+    notes TEXT,
+
+    FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE -- Clave foránea a tabla 'event'
+);
+Título Sniper:  Creación Tabla Need
+
+SQL
+
+-- SNIPER TITLE:  CREATE TABLE Need
+CREATE TABLE need (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Clave primaria UUID autogenerada
+    event_id UUID NOT NULL,
+    need_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    quantity INTEGER,
+    estimated_budget DECIMAL(15, 2),
+    status VARCHAR(20),
+
+    FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE -- Clave foránea a tabla 'event'
+);
+Puntos Clave en las Instrucciones SQL para Supabase:
+
+CREATE TABLE details, CREATE TABLE task, CREATE TABLE need: Comandos para crear las tablas.
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4():
+id UUID PRIMARY KEY: Define la columna id como clave primaria de tipo UUID.
+DEFAULT uuid_generate_v4(): Esto es específico de PostgreSQL (y por lo tanto, Supabase). uuid_generate_v4() es una función de PostgreSQL que genera UUIDs versión 4 automáticamente. DEFAULT indica que si no se proporciona un valor para id al insertar una nueva fila, se generará un UUID automáticamente. Esto es muy útil para generar IDs únicos en Supabase.
+event_id UUID NOT NULL: Clave foránea que relaciona cada tabla con la tabla event. NOT NULL asegura que cada registro en estas tablas esté siempre asociado a un evento.
+Tipos de Datos: Se han utilizado los tipos de datos más apropiados:
+UUID: Para IDs únicos.
+TEXT: Para descripciones largas, requisitos, notas.
+VARCHAR(longitud): Para cadenas de texto con longitud limitada (estados, nombres, temas).
+INTEGER: Para cantidades.
+DECIMAL(15, 2): Para presupuestos, asegurando precisión para valores monetarios.
+DATE: Para fechas de vencimiento (due_date en Task).
+TEXT[]: Para PostgreSQL Arrays de Texto (en Details para before_event_tasks, during_event_tasks, after_event_tasks). Como se mencionó antes, si usas MySQL o SQL Server, considera JSON o tablas separadas para las listas de tareas.
+NOT NULL DEFAULT 'pending' en status VARCHAR(20) de Task: Define un valor por defecto 'pending' para el estado de las tareas cuando se crean.
+FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE: Define la clave foránea y la acción ON DELETE CASCADE. Esto asegura que si eliminas un evento de la tabla event, todos los registros relacionados en details, task y need (con ese event_id) también se eliminen automáticamente, manteniendo la integridad referencial.
+Nombres de Tablas en Minúsculas: Se han utilizado nombres de tablas en minúsculas (details, task, need, event) que es una convención común en PostgreSQL y bases de datos en general.
+Modelos TypeScript (Interfaces) para Next.js App Router
+Aquí tienes las interfaces TypeScript que puedes usar en tu aplicación Next.js (App Router) para modelar los datos que recogerás de estas tablas.  Crea un archivo (por ejemplo, types/event-types.ts) y define estas interfaces dentro de él.
+
+TypeScript
+
+// types/event-types.ts
+
+export interface Detail {
+  id: string; // UUID autogenerado por Supabase
+  event_id: string; // UUID - Clave foránea a la tabla 'Event'
+  description: string | null; // Permite valores null en TypeScript (y en la base de datos)
+  status_detail: string | null;
+  requirements: string | null;
+  theme: string | null;
+
+  // Tareas categorizadas (arrays de strings):
+  before_event_tasks: string[] | null; // Permite null para el array completo, o array puede estar vacío
+  during_event_tasks: string[] | null;
+  after_event_tasks: string[] | null;
+}
+
+export interface Task {
+  id: string; // UUID autogenerado por Supabase
+  event_id: string; // UUID - Clave foránea a la tabla 'Event'
+  task_description: string;
+  status: string; //  'pending', 'in_progress', 'completed' (o valores que definas)
+  priority: string | null;
+  assigned_to: string | null;
+  due_date: string | null; //  Podría ser string (ISO date string) o Date objeto, según como manejes fechas
+  notes: string | null;
+}
+
+export interface Need {
+  id: string; // UUID autogenerado por Supabase
+  event_id: string; // UUID - Clave foránea a la tabla 'Event'
+  need_name: string;
+  description: string | null;
+  quantity: number | null;
+  estimated_budget: number | null;
+  status: string | null;
+}
+Puntos Clave en los Modelos TypeScript:
+
+Interfaces TypeScript: Se han definido interfaces (Detail, Task, Need) para tipar los datos.
+Propiedades CamelCase: Los nombres de las propiedades en TypeScript están en camelCase (ej: eventId, taskDescription, statusDetail) siguiendo convenciones de JavaScript/TypeScript, aunque en la base de datos se usen snake_case (event_id, task_description, status_detail). Tu capa de acceso a datos (por ejemplo, usando la librería Supabase JS) se encargará de la posible conversión entre camelCase en JavaScript/TypeScript y snake_case en SQL si es necesario (muchas librerías ORM/query builders lo hacen automáticamente).
+Tipos TypeScript Correspondientes: Los tipos de datos TypeScript se corresponden con los tipos de datos SQL:
+UUID en SQL se mapea a string en TypeScript (los UUIDs se representan como strings en JavaScript).
+TEXT, VARCHAR se mapean a string.
+INTEGER, DECIMAL se mapean a number.
+DATE se mapea a string por simplicidad (ISO date string). Podrías usar Date en TypeScript si prefieres manejar objetos Date, pero necesitarías parsear las fechas desde la base de datos a objetos Date y viceversa.
+TEXT[] (PostgreSQL arrays de texto) se mapean a string[] (arrays de strings).
+Nullable/Opcional con | null: Las columnas en SQL que pueden ser NULL (como description, status_detail, requirements, theme, priority, assigned_to, due_date, notes, quantity, estimated_budget, status y los arrays en Details) se marcan como opcionales en TypeScript utilizando | null. Esto significa que una propiedad de tipo string | null puede ser o un string o null. Para los arrays, string[] | null significa que la propiedad puede ser null (el array no existe) o un string[] (el array existe, y podría estar vacío o tener elementos). Esto refleja la posibilidad de valores nulos en la base de datos y permite manejar la ausencia de datos en tu código TypeScript de forma segura.
+id y event_id en cada interfaz: Cada interfaz incluye id (clave primaria de la tabla) y event_id (clave foránea para relacionar con Event).
+Cómo Usar estos Modelos en Next.js App Router:
+
+En tu código de Next.js App Router (por ejemplo, en app/api/events/[eventId]/details/route.ts, app/api/events/[eventId]/tasks/route.ts, etc.), cuando fetches datos de Supabase, puedes usar estas interfaces para tipar las respuestas:
+
+TypeScript
+
+// Example: app/api/events/[eventId]/details/route.ts
+
+import { NextResponse } from 'next/server';
+import { supabase } from '@/utils/supabaseClient'; // Asegúrate de tener tu cliente Supabase configurado
+import { Detail } from '@/types/event-types'; // Importa la interfaz Detail
+
+export async function GET(
+  request: Request,
+  { params }: { params: { eventId: string } }
+) {
+  const { eventId } = params;
+
+  const { data: detailData, error: detailError } = await supabase
+    .from('details')
+    .select('*')
+    .eq('event_id', eventId)
+    .single(); // Asumiendo que solo quieres UN Detail por event_id
+
+  if (detailError) {
+    console.error("Error fetching event details:", detailError);
+    return NextResponse.error(); // O devuelve un error NextResponse personalizado
+  }
+
+  const detail: Detail | null = detailData; // Tipado con la interfaz Detail
+  return NextResponse.json(detail);
+}
+En este ejemplo, detail: Detail | null = detailData; asegura que la variable detail se tipa como Detail o null,  para que TypeScript te ayude a trabajar con los datos de detailData de forma segura y con autocompletado en tu editor.
+
+

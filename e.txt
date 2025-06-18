@@ -1,0 +1,210 @@
+CmbmwDqz05Cdzw6z
+📌 Configuración de Proyecto Supabase con Next.js y Gestión de Roles
+Esta guía te mostrará cómo:
+✅ Configurar un proyecto en Supabase.
+✅ Crear una tabla user_profiles con una columna de role.
+✅ Configurar un trigger para gestionar roles al registrar usuarios.
+✅ Clonar un proyecto Next.js y conectarlo a Supabase.
+
+🔹 Paso 1: Crear un Proyecto en Supabase
+Acceder a Supabase
+
+Abre tu navegador y visita https://supabase.com/.
+Registrarse o Iniciar Sesión
+
+Si tienes una cuenta, inicia sesión.
+Si no, regístrate gratuitamente.
+Crear un Nuevo Proyecto
+
+En el panel de Supabase, haz clic en "New Project".
+Completa los siguientes campos:
+Nombre del Proyecto: Escribe un nombre para tu proyecto.
+Contraseña de la Base de Datos: Crea una contraseña segura.
+Región: Elige la más cercana a tu ubicación o usuarios.
+Plan de Precios: Selecciona "Free".
+Haz clic en "Create New Project".
+Esperar el Despliegue
+
+Supabase tardará unos minutos en configurar tu proyecto.
+Una vez listo, serás redirigido automáticamente al panel de control.
+🔹 Paso 2: Configurar la Base de Datos en Supabase
+Ir a "Database" → "Table Editor"
+
+Crear una nueva tabla llamada user_profiles
+
+Copiar y pegar este código en el SQL Editor:
+
+sql
+Copiar
+Editar
+CREATE TABLE public.user_profiles (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  email_confirmed_at TIMESTAMPTZ,
+  first_name TEXT,
+  last_name TEXT,
+  full_name TEXT NOT NULL,
+  profile_picture_url TEXT,
+  date_of_birth DATE,
+  phone_number TEXT,
+  address TEXT,
+  city TEXT,
+  country TEXT,
+  postal_code TEXT,
+  timezone TEXT,
+  locale TEXT,
+  preferred_language TEXT,
+  theme_preference TEXT,
+  notifications_enabled BOOLEAN DEFAULT TRUE,
+  marketing_emails_enabled BOOLEAN DEFAULT TRUE,
+  website_url TEXT,
+  twitter_username TEXT,
+  instagram_username TEXT,
+  linkedin_url TEXT,
+  github_username TEXT,
+  role TEXT DEFAULT 'user',
+  is_active BOOLEAN DEFAULT TRUE,
+  last_login_at TIMESTAMPTZ,
+  bio TEXT,
+  interests TEXT[],
+  custom_field_1 TEXT,
+  custom_field_2 INTEGER,
+  custom_field_3 BOOLEAN,
+  created_by_user_id UUID REFERENCES auth.users(id),
+  updated_by_user_id UUID REFERENCES auth.users(id)
+);
+Guardar la tabla haciendo clic en "Save".
+
+Verificar en el Table Editor que user_profiles se haya creado correctamente.
+
+🔹 Paso 3: Activar Row Level Security (RLS) y Crear Políticas
+Ir a "Database" → "Table Editor" → user_profiles
+
+Activar Row Level Security (RLS)
+
+En la pestaña Settings, activa la opción "Enable RLS".
+Crear políticas de seguridad para permitir a los usuarios acceder y editar su propio perfil
+
+🔹 Permitir a los usuarios ver su propio perfil
+
+Ir a la pestaña "Policies" y hacer clic en "Create Policy".
+Configurar:
+Name: Allow users to view their own profile
+Action: SELECT
+Policy definition (Using Expression):
+sql
+Copiar
+Editar
+auth.uid() = user_id
+Roles to apply policy to: Authenticated
+🔹 Permitir a los usuarios actualizar su propio perfil
+
+Crear otra política con:
+Name: Allow users to update their own profile
+Action: UPDATE
+Policy definition (Using Expression):
+sql
+Copiar
+Editar
+auth.uid() = user_id
+Roles to apply policy to: Authenticated
+🔹 Paso 4: Crear Función y Trigger para Autocreación de Perfiles
+Ir a "Database" → "Functions" → "+ New Function"
+
+Configurar la función:
+
+Function Name: create_user_profile_on_signup
+Schema: public
+Return Type: TRIGGER
+Language: plpgsql
+Definition (copiar y pegar):
+sql
+Copiar
+Editar
+BEGIN
+  INSERT INTO public.user_profiles (user_id, full_name, email_confirmed_at, role)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name', NOW(), 'user');
+  RETURN NEW;
+END;
+Guardar la función haciendo clic en "Save Function".
+
+🔹 Paso 4.2: Crear el Trigger
+Ir a "Database" → "SQL Editor"
+
+Ejecutar este código SQL:
+
+sql
+Copiar
+Editar
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.create_user_profile_on_signup();
+Hacer clic en "Run" para ejecutar el código.
+
+🔹 Verificación:
+
+Crear un usuario en Supabase y verificar que se añade automáticamente en user_profiles.
+🔹 Paso 5: Clonar el Proyecto Next.js y Configurar Supabase
+Abrir la Terminal y ejecutar:
+
+bash
+Copiar
+Editar
+git clone URL_DEL_REPOSITORIO_GITHUB mi-proyecto-supabase
+cd mi-proyecto-supabase
+Instalar las dependencias:
+
+bash
+Copiar
+Editar
+npm install
+🔹 Paso 5.2: Configurar las Variables de Entorno
+Crear o abrir el archivo .env.local
+
+Añadir las variables de Supabase:
+
+bash
+Copiar
+Editar
+NEXT_PUBLIC_SUPABASE_URL=TU_URL_DE_PROYECTO_SUPABASE
+NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_CLAVE_ANONIMA_PUBLICA_SUPABASE
+🔹 Paso 5.3: Crear el Cliente de Supabase en Next.js
+Crear un archivo en lib/supabaseClient.ts
+
+Añadir el siguiente código:
+
+ts
+Copiar
+Editar
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+🔹 Paso 5.4: Ejecutar y Verificar el Proyecto
+Ejecutar Next.js:
+
+bash
+Copiar
+Editar
+npm run dev
+Verificar que todo funcione correctamente.
+
+¡Listo! 🚀 Has configurado Supabase con Next.js de manera segura.
+Si necesitas más ajustes o mejoras, dime qué quieres cambiar y te ayudo. 😊
+
+
+
+
+
+
+
+
+
+
+
+

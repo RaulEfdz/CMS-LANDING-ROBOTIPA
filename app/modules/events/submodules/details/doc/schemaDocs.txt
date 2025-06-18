@@ -1,0 +1,8 @@
+submodules
+└── planning
+    ├── components
+    │   ├── event-details-dialog.tsx
+    │   ├── additional-details-form.tsx
+    │   └── event-details-interface.tsx
+    └── types
+        └── planning-types.ts

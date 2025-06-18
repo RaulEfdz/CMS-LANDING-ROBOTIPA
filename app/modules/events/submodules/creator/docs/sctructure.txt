@@ -1,0 +1,11 @@
+/app/
+  /events/
+    page.tsx         # Vista principal
+    actions.ts       # Server Actions
+    schema.ts        # Esquema Zod
+    /components/
+      EventCard.tsx  # Tarjeta de evento
+      StatusBadge.tsx# Indicador de estado
+      TagSelector.tsx# Selector de tags
+    /types/
+      event.ts       # Tipos TypeScript
