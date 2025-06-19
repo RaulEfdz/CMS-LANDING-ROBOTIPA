@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/utils/supabase/server";
+import { QueryProvider } from "./QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,22 +26,26 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-    const supabase = createClient();
+  const supabase = createClient();
 
-  const { data: { session } } = await (await supabase).auth.getSession();
+  const {
+    data: { session },
+  } = await (await supabase).auth.getSession();
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
+      >
         <SidebarProvider>
           <div className="flex flex-row h-auto w-screen">
-            {session && <AppSidebar/>}
+            {session && <AppSidebar />}
             <main className="flex-grow  bg-blue-300">
-              {children}
+              <QueryProvider>{children}</QueryProvider>
             </main>
           </div>
         </SidebarProvider>
       </body>
     </html>
   );
-}  
+}
